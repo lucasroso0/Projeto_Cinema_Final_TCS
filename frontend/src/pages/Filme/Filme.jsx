@@ -3,6 +3,9 @@ import Button from '../../components/Button/Button';
 import Input from '../../components/Input/Input';
 import './filme.css';
 
+
+const API_URL = 'http://localhost:3001/filme';
+
 export default function Filme() {
   const [filme, setFilme] = useState({
     titulo: '',
@@ -11,35 +14,63 @@ export default function Filme() {
     diretor: ''
   });
 
-  const [listaFilmes, setListaFilmes] = useState(() => {
-    // Carrega do localStorage na inicialização
-    const filmesSalvos = localStorage.getItem('filmes');
-    return filmesSalvos ? JSON.parse(filmesSalvos) : [];
-  });
+  // O estado agora começa como uma lista vazia.
+  const [listaFilmes, setListaFilmes] = useState([]);
 
+  // Função para buscar os filmes do backend
+  const fetchFilmes = async () => {
+    try {
+      const response = await fetch(API_URL);
+      const data = await response.json();
+      setListaFilmes(data); // Atualiza o estado com os dados do backend
+    } catch (error) {
+      console.error('Erro ao buscar filmes:', error);
+      alert('Não foi possível carregar os filmes do servidor.');
+    }
+  };
+
+  // useEffect para buscar os filmes do backend QUANDO o componente carregar
   useEffect(() => {
-    // Sempre que listaFilmes mudar, salva no localStorage
-    localStorage.setItem('filmes', JSON.stringify(listaFilmes));
-  }, [listaFilmes]);
+    fetchFilmes();
+  }, []); // O array vazio [] garante que isso rode apenas uma vez
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFilme({ ...filme, [name]: value });
+    // Converte para número se o campo for de duração ou ano
+    const valorTratado = name === 'duracao' || name === 'ano' ? parseInt(value, 10) || '' : value;
+    setFilme({ ...filme, [name]: valorTratado });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validação simples para não cadastrar filme vazio
     if (!filme.titulo.trim()) {
       alert('O título do filme é obrigatório.');
       return;
     }
 
-    setListaFilmes([...listaFilmes, filme]);
+    try {
+      // Envia os dados do novo filme para o backend (POST)
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(filme),
+      });
 
-    alert('Filme cadastrado com sucesso!');
-    setFilme({ titulo: '', duracao: '', ano: '', diretor: '' });
+      if (!response.ok) {
+        throw new Error('Erro ao cadastrar o filme.');
+      }
+
+      alert('Filme cadastrado com sucesso!');
+      setFilme({ titulo: '', duracao: '', ano: '', diretor: '' }); // Limpa o formulário
+      fetchFilmes(); // Atualiza a lista de filmes buscando os dados mais recentes do backend
+
+    } catch (error) {
+      console.error('Erro no cadastro:', error);
+      alert('Ocorreu um erro ao cadastrar o filme.');
+    }
   };
 
   return (
@@ -53,6 +84,7 @@ export default function Filme() {
       <div className="filme-card">
         <h2 className="filme-title">🎬 Cadastro de Filme</h2>
         <form onSubmit={handleSubmit}>
+          {/* Inputs continuam os mesmos */}
           <Input
             label="Título"
             name="titulo"
@@ -90,8 +122,9 @@ export default function Filme() {
             <p>Nenhum filme cadastrado ainda.</p>
           ) : (
             <ul>
-              {listaFilmes.map((f, index) => (
-                <li key={index}>
+              {/* Agora a key pode ser o ID do filme vindo do banco de dados */}
+              {listaFilmes.map((f) => (
+                <li key={f.id}>
                   {f.titulo} ({f.ano}), {f.duracao} min - Diretor: {f.diretor}
                 </li>
               ))}
