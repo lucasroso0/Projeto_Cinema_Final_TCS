@@ -1,0 +1,43 @@
+.sala-card {
+  background: rgba(0, 0, 0, 0.85);
+  padding: 2.5rem;
+  border-radius: 15px;
+  box-shadow: 
+    0 0 25px rgba(0, 200, 255, 0.3),
+    0 0 15px rgba(0, 255, 150, 0.2) inset;
+  border: 1px solid rgba(0, 255, 150, 0.3);
+  backdrop-filter: blur(8px);
+  max-width: 600px;
+  margin: auto;
+  animation: fadeIn 0.8s ease-out;
+}
+
+.sala-title {
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 2.2rem;
+  color: rgb(0, 255, 195);
+  text-shadow: 0 0 10px rgba(0, 255, 195, 0.5);
+  position: relative;
+  padding-bottom: 10px;
+}
+
+.sala-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 25%;
+  width: 50%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #00ffc3, transparent);
+}
+.sala-card .form-label {
+  color: rgb(0, 255, 195); /* ou qualquer cor desejada */
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}

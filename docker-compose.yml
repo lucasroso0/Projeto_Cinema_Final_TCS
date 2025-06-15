@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cinema-backend
+    ports:
+      - "${BACKEND_PORT:-4000}:3001"  # Valor padrão 4000 se não definido
+    env_file:
+      - .env
+    volumes:
+      - ./backend:/app
+      - /app/node_modules  # Evita sobrescrever node_modules
+    restart: unless-stopped
+    networks:
+      - cinema-network
+    depends_on:
+      - database  # Se tiver um serviço de banco de dados
+
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: cinema-frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"  # Valor padrão 3000 se não definido
+    env_file:
+      - .env
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next  # Para Next.js, se aplicável
+    restart: unless-stopped
+    networks:
+      - cinema-network
+    depends_on:
+      - backend
+
+networks:
+  cinema-network:
+    driver: bridge

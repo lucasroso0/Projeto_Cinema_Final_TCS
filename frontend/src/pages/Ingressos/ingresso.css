@@ -1,0 +1,110 @@
+/* Fundo e estrutura principal */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 100%);
+  color: #fff;
+  min-height: 100vh;
+}
+
+.ingresso-card {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 2.5rem;
+  background: rgba(0, 0, 0, 0.85);
+  border-radius: 15px;
+  box-shadow: 
+    0 0 25px rgba(40, 150, 255, 0.3),
+    0 0 15px rgba(0, 200, 255, 0.2) inset;
+  border: 1px solid rgba(0, 200, 255, 0.3);
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.8s ease-out;
+}
+
+.ingresso-title {
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 2.2rem;
+  color: #00c8ff; /* Azul vibrante */
+  text-shadow: 0 0 10px rgba(0, 200, 255, 0.6);
+  position: relative;
+  padding-bottom: 10px;
+}
+
+.ingresso-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 25%;
+  width: 50%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #00c8ff, transparent);
+}
+
+.ingresso-card .form-label {
+  color: #76c7ff;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.ingresso-card .form-control {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 200, 255, 0.3);
+  color: white;
+  padding: 12px 15px;
+  margin-bottom: 1.5rem;
+  transition: all 0.3s;
+}
+
+.ingresso-card .form-control:focus {
+  
+  border-color: #76c7ff;
+  box-shadow: 0 0 0 0.25rem rgba(118, 199, 255, 0.25);
+  color: rgb(0, 0, 0);
+}
+
+/* Botão estilizado - reaproveitando a classe .btn-success já usada */
+.btn-success {
+  background: linear-gradient(45deg, #0077ff 0%, #00d4ff 100%);
+  border: none;
+  padding: 10px 25px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-success:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(0, 119, 255, 0.3);
+}
+
+.btn-success::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: 0.5s;
+}
+
+.btn-success:hover::after {
+  left: 100%;
+}
+
+/* Animação fadeIn igual ao filme.css */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .ingresso-card {
+    padding: 1.5rem;
+  }
+}
