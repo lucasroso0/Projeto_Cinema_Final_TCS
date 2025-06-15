@@ -3,27 +3,47 @@ import Button from '../../components/Button/Button';
 import Input from '../../components/Input/Input';
 import './Sala.css';
 
+// URL do seu endpoint da API para salas
+const API_URL = 'http://localhost:3001/salas';
+
 export default function Sala() {
+  // Estado para os campos do formulário
   const [sala, setSala] = useState({
     nome: '',
-    capacidade: ''
+    capacidade: '',
   });
 
+  // Estado para armazenar a lista de salas vindas do backend
   const [listaSalas, setListaSalas] = useState([]);
 
-  useEffect(() => {
-    const salasSalvas = localStorage.getItem('salas');
-    if (salasSalvas) {
-      setListaSalas(JSON.parse(salasSalvas));
+  // Função para buscar as salas da API
+  const fetchSalas = async () => {
+    try {
+      const response = await fetch(API_URL);
+      if (!response.ok) {
+        throw new Error('Falha ao carregar as salas.');
+      }
+      const data = await response.json();
+      setListaSalas(data);
+    } catch (error) {
+      console.error('Erro:', error);
+      alert(error.message);
     }
-  }, []);
+  };
+
+  // useEffect para buscar as salas quando o componente carregar
+  useEffect(() => {
+    fetchSalas();
+  }, []); // O array vazio [] garante que isso rode apenas uma vez
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setSala({ ...sala, [name]: value });
+    // Se o campo for 'capacidade', converte para número
+    const valorTratado = name === 'capacidade' ? parseInt(value, 10) || '' : value;
+    setSala({ ...sala, [name]: valorTratado });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!sala.nome.trim() || !sala.capacidade) {
@@ -31,13 +51,30 @@ export default function Sala() {
       return;
     }
 
-    const novaSala = { ...sala };
-    const salasAtualizadas = [...listaSalas, novaSala];
-    localStorage.setItem('salas', JSON.stringify(salasAtualizadas));
-    setListaSalas(salasAtualizadas);
+    try {
+      // Envia os dados para a API criar a nova sala
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(sala),
+      });
 
-    alert('Sala cadastrada com sucesso!');
-    setSala({ nome: '', capacidade: '' });
+      if (!response.ok) {
+        const errorData = await response.json();
+        // Exibe a mensagem de erro específica do backend (ex: "sala já existe")
+        throw new Error(errorData.message || 'Erro ao cadastrar a sala.');
+      }
+
+      alert('Sala cadastrada com sucesso!');
+      setSala({ nome: '', capacidade: '' }); // Limpa o formulário
+      fetchSalas(); // Atualiza a lista de salas na tela
+
+    } catch (error) {
+      console.error('Erro no cadastro:', error);
+      alert(error.message);
+    }
   };
 
   return (
@@ -47,7 +84,7 @@ export default function Sala() {
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         minHeight: '100vh',
-        padding: '20px'
+        padding: '20px',
       }}
     >
       <div className="sala-card">
@@ -63,6 +100,7 @@ export default function Sala() {
             label="Capacidade"
             name="capacidade"
             type="number"
+            min="1"
             value={sala.capacidade}
             onChange={handleChange}
           />
@@ -70,6 +108,22 @@ export default function Sala() {
             <Button type="submit" variant="success">Salvar</Button>
           </div>
         </form>
+
+        {/* Adicionei esta seção para exibir as salas cadastradas */}
+        <div style={{ marginTop: '2rem' }}>
+          <h3>Salas Cadastradas:</h3>
+          {listaSalas.length === 0 ? (
+            <p>Nenhuma sala cadastrada ainda.</p>
+          ) : (
+            <ul className="sala-list">
+              {listaSalas.map((s) => (
+                <li key={s.id}>
+                  <strong>{s.nome}</strong> - Capacidade: {s.capacidade} pessoas
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
     </div>
   );

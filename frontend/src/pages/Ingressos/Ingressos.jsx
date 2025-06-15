@@ -1,134 +1,178 @@
 import React, { useState, useEffect } from 'react';
 import Button from '../../components/Button/Button';
 import Input from '../../components/Input/Input';
+import SeatPickerModal from '../../components/SeatPickerModal/SeatPickerModal';
 import './ingresso.css';
 
+const API_URL_INGRESSOS = 'http://localhost:3001/ingressos';
+const API_URL_SESSOES = 'http://localhost:3001/sessoes';
+
 export default function Ingresso() {
-  const [ingresso, setIngresso] = useState({
-    filme: '',
-    sala: '',
-    sessao: '',
-    quantidade: 1,
+  const [novoIngresso, setNovoIngresso] = useState({
+    sessaoId: '',
+    nomeCliente: '',
+    assento: '',
+    tipo: 'INTEIRA',
   });
 
-  const [listaFilmes, setListaFilmes] = useState([]);
+  const [listaSessoes, setListaSessoes] = useState([]);
   const [listaIngressos, setListaIngressos] = useState([]);
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [seatMap, setSeatMap] = useState({ capacidadeTotal: 0, assentosOcupados: [] });
 
+  const carregarDadosIniciais = async () => {
+    try {
+      const [sessoesRes, ingressosRes] = await Promise.all([
+        fetch(API_URL_SESSOES),
+        fetch(API_URL_INGRESSOS)
+      ]);
+      
+      if (!sessoesRes.ok || !ingressosRes.ok) throw new Error('Falha ao carregar dados.');
+
+      const sessoesData = await sessoesRes.json();
+      const ingressosData = await ingressosRes.json();
+      
+      setListaSessoes(sessoesData);
+      setListaIngressos(ingressosData);
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+      alert(error.message);
+    }
+  };
+  
   useEffect(() => {
-    // Carregar filmes
-    const filmesSalvos = localStorage.getItem('filmes');
-    if (filmesSalvos) {
-      setListaFilmes(JSON.parse(filmesSalvos));
-    }
-    // Carregar ingressos
-    const ingressosSalvos = localStorage.getItem('ingressos');
-    if (ingressosSalvos) {
-      setListaIngressos(JSON.parse(ingressosSalvos));
-    }
+    carregarDadosIniciais();
   }, []);
+
+  const fetchSeatMap = async (sessaoId) => {
+    if (!sessaoId) return;
+    try {
+      const response = await fetch(`${API_URL_SESSOES}/${sessaoId}/assentos`);
+      if (!response.ok) throw new Error('Falha ao buscar assentos para esta sessão.');
+      const data = await response.json();
+      setSeatMap(data);
+    } catch (error) {
+      console.error(error);
+      alert(error.message);
+      setSeatMap({ capacidadeTotal: 0, assentosOcupados: [] });
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setIngresso({ ...ingresso, [name]: value });
+    const isNumericId = name === 'sessaoId';
+    const valorTratado = isNumericId ? parseInt(value, 10) : value;
+    
+    setNovoIngresso({ ...novoIngresso, [name]: valorTratado, assento: '' });
+
+    if (name === 'sessaoId') {
+      fetchSeatMap(valorTratado);
+    }
   };
 
-  const handleSubmit = (e) => {
+  const handleSelectSeat = (seatNumber) => {
+    setNovoIngresso({ ...novoIngresso, assento: seatNumber });
+  };
+  
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!ingresso.filme) {
-      alert('Selecione um filme.');
-      return;
-    }
-    if (!ingresso.sala.trim()) {
-      alert('Informe a sala.');
-      return;
-    }
-    if (!ingresso.sessao.trim()) {
-      alert('Informe a sessão.');
-      return;
-    }
-    if (ingresso.quantidade < 1) {
-      alert('Quantidade mínima é 1.');
+    if (!novoIngresso.sessaoId || !novoIngresso.nomeCliente.trim() || !novoIngresso.assento) {
+      alert('Preencha todos os campos, incluindo a seleção do assento.');
       return;
     }
 
-    // Adicionar novo ingresso à lista
-    const novoIngresso = { ...ingresso };
-    const ingressosAtualizados = [...listaIngressos, novoIngresso];
+    try {
+      const payload = {
+        sessaoId: novoIngresso.sessaoId,
+        nomeCliente: novoIngresso.nomeCliente,
+        assento: novoIngresso.assento,
+      };
 
-    // Salvar no localStorage
-    localStorage.setItem('ingressos', JSON.stringify(ingressosAtualizados));
-    setListaIngressos(ingressosAtualizados);
+      const response = await fetch(API_URL_INGRESSOS, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-    alert(`Ingresso para "${ingresso.filme}" comprado com sucesso!`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao comprar o ingresso.');
+      }
+      
+      alert('Ingresso comprado com sucesso!');
+      setNovoIngresso({ sessaoId: '', nomeCliente: '', assento: '', tipo: 'INTEIRA' });
+      carregarDadosIniciais();
 
-    // Resetar o formulário
-    setIngresso({
-      filme: '',
-      sala: '',
-      sessao: '',
-      quantidade: 1,
-    });
+    } catch (error) {
+      console.error('Erro na compra:', error);
+      alert(error.message);
+    }
   };
 
   return (
-    <div
-      style={{
-        backgroundImage: "url('/images/Sala_Cinema.jpg')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        minHeight: '100vh',
-        padding: '20px',
-      }}
-    >
-      <div className="ingresso-card">
-        <h2 className="ingresso-title">🎟️ Compra de Ingresso</h2>
-        <form onSubmit={handleSubmit}>
-          <label className="form-label" htmlFor="filme">Filme</label>
-          <select
-            id="filme"
-            name="filme"
-            value={ingresso.filme}
-            onChange={handleChange}
-            className="form-control"
-            required
-          >
-            <option value="" disabled>
-              -- Selecione o filme --
-            </option>
-            {listaFilmes.map((f, i) => (
-              <option key={i} value={f.titulo}>
-                {f.titulo} ({f.ano})
-              </option>
-            ))}
-          </select>
+    <>
+      <SeatPickerModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        capacidade={seatMap.capacidadeTotal}
+        assentosOcupados={seatMap.assentosOcupados}
+        onSelectSeat={handleSelectSeat}
+      />
+      <div className="ingresso-container">
+        <div className="ingresso-card">
+          <h2 className="ingresso-title">🎟️ Compra de Ingresso</h2>
+          <form onSubmit={handleSubmit}>
+            <label className="form-label" htmlFor="sessaoId">Sessão</label>
+            <select
+              id="sessaoId" name="sessaoId" value={novoIngresso.sessaoId}
+              onChange={handleChange} className="form-control" required
+            >
+              <option value="" disabled>-- Selecione a sessão --</option>
+              {listaSessoes.map((sessao) => (
+                <option key={sessao.id} value={sessao.id}>
+                  {sessao.filme?.titulo} - Sala {sessao.sala?.nome} - {new Date(sessao.horario).toLocaleTimeString('pt-BR')}
+                </option>
+              ))}
+            </select>
+            
+            <Input label="Nome do Cliente" name="nomeCliente" value={novoIngresso.nomeCliente} onChange={handleChange}/>
 
-          <Input
-            label="Sala"
-            name="sala"
-            value={ingresso.sala}
-            onChange={handleChange}
-          />
-          <Input
-            label="Sessão"
-            name="sessao"
-            value={ingresso.sessao}
-            onChange={handleChange}
-          />
-          <Input
-            label="Quantidade"
-            name="quantidade"
-            type="number"
-            min="1"
-            value={ingresso.quantidade}
-            onChange={handleChange}
-          />
+            <div className="assento-selector">
+              <label className="form-label">Assento</label>
+              <div className="assento-display">
+                {novoIngresso.assento || 'Nenhum assento selecionado'}
+              </div>
+              <Button type="button" onClick={() => setIsModalOpen(true)} disabled={!novoIngresso.sessaoId}>
+                Selecionar Assento
+              </Button>
+            </div>
+            
+            <label className="form-label" htmlFor="tipo">Tipo de Ingresso</label>
+            <select id="tipo" name="tipo" value={novoIngresso.tipo} onChange={handleChange} className="form-control">
+              <option value="INTEIRA">Inteira</option>
+              <option value="MEIA">Meia</option>
+            </select>
 
-          <div className="text-end mt-4">
-            <Button type="submit" variant="success">Comprar</Button>
+            <div className="text-end mt-4">
+              <Button type="submit" variant="success">Comprar</Button>
+            </div>
+          </form>
+
+          <div style={{ marginTop: '2rem' }}>
+            <h3>Ingressos Comprados:</h3>
+            {listaIngressos.length === 0 ? (<p>Nenhum ingresso comprado ainda.</p>) : (
+              <ul>
+                {listaIngressos.map((ingresso) => (
+                  <li key={ingresso.id}>
+                    <strong>{ingresso.nomeCliente}</strong> - {ingresso.sessao?.filme?.titulo} (Assento: {ingresso.assento})
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
-        </form>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
